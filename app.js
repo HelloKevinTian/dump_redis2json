@@ -1,7 +1,7 @@
 var redis = require("redis");
 
 var opts = {
-    "no_ready_check": false  //proxy or not
+    "no_ready_check": false //proxy or not
 };
 
 var client = redis.createClient(6379, '127.0.0.1', opts);
@@ -13,11 +13,11 @@ var async = require("async");
 var date = new Date();
 
 // make backup dir
-fs.mkdir('./backup/', function(err) {
-    if (err) {
-        return;
-    }
-});
+var cur = './backup/';
+
+if (!fs.existsSync(cur)) {
+    fs.mkdirSync(cur, 0755);
+}
 
 // if you'd like to select database 3, instead of 0 (default), call
 // client.select(3, function() { /* ... */ });
@@ -31,13 +31,13 @@ client.on("error", function(err) {
 // 1:read data from redis to json
 // 2:read data from json to redis
 // 3:insert data to redis table
-var FLAG = 2;
+var FLAG = 0;
 
 // set backup filename
 var tablename = "h_rank_pvp_cheat1";
 
-var jsonfile = "./backup/" + tablename + "_" + date.getFullYear().toString() + 
-"_" + (date.getMonth() + 1).toString() + "_" + date.getDate().toString() + ".json";
+var jsonfile = "./backup/" + tablename + "_" + date.getFullYear().toString() +
+    "_" + (date.getMonth() + 1).toString() + "_" + date.getDate().toString() + ".json";
 
 var outtable = tablename + "_dump";
 
@@ -95,7 +95,7 @@ if (FLAG === 1) {
     //     }
     // );
 
-    for (var i = 0; i < 10000; i++) {
+    for (var i = 0; i < 100000; i++) {
         client.hset(
             tablename,
             i.toString(),
@@ -106,4 +106,6 @@ if (FLAG === 1) {
         );
     }
     console.log("insert over...");
+} else if (FLAG === 0) {
+    console.log('need config the flag...');
 }
