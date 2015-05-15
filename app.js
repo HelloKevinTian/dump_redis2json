@@ -1,10 +1,11 @@
 var redis = require("redis");
 
 var opts = {
-    "no_ready_check": false //proxy or not
+    "no_ready_check": false //redis用了代理必须改为true
 };
 
 var client = redis.createClient(6379, '127.0.0.1', opts);
+// var client = redis.createClient(25040, '10.10.2.183', opts); //主干
 
 var fs = require("fs");
 
@@ -26,12 +27,11 @@ client.on("error", function(err) {
     console.log("Error " + err);
 });
 
-
-
 // 1:read data from redis to json
 // 2:read data from json to redis
 // 3:insert data to redis table
-var FLAG = 0;
+// 4:线上取某时间段的邮件备份
+var FLAG = 4;
 
 // set backup filename
 var tablename = "h_rank_pvp_cheat1";
@@ -70,31 +70,6 @@ if (FLAG === 1) {
     });
 
 } else if (FLAG === 3) {
-    // test  insert data  count超过5000时报错： RangeError: Maximum call stack size exceeded
-
-    // var count = 0;
-    // async.whilst(
-    //     function() {
-    //         return count < 5000;
-    //     },
-    //     function(callback) {
-    //         count++;
-    //         client.hset(
-    //             tablename,
-    //             count.toString(),
-    //             "{\"channel\":\"000020\",\"version\":\"2.3.0\",\"nickname\":\"\xe6\x9c\xac\xe6\x80\xa7\xe7\x8c\x96\xe7\x8b\x82\",\"device_guid\":\"bb561920-bcb2-11e4-9b58-f9e21b58f9e2\",\"area\":\"\xe5\x9b\x9b\xe5\xb7\x9d\",\"phone_number\":\"18877981200\",\"championship_id\":15,\"car\":\"40\",\"car_lv\":\"15\",\"racer\":\"4\",\"racer_lv\":\"10\",\"strength\":\"840\",\"score\":1155014,\"score_weekly\":25251,\"score_activity\":25251,\"total_race\":6077,\"total_win\":5350,\"blocked\":0,\"upload_last_time\":1427988940917}",
-    //             function(err) {
-    //                 if (err) throw err;
-    //             }
-    //         );
-    //         callback(null);
-    //     },
-    //     function(err) {
-    //         console.log("insert over...")
-    //         if (err) throw err;
-    //     }
-    // );
-
     for (var i = 0; i < 100000; i++) {
         client.hset(
             tablename,
@@ -106,6 +81,25 @@ if (FLAG === 1) {
         );
     }
     console.log("insert over...");
-} else if (FLAG === 0) {
-    console.log('need config the flag...');
+
+} else if (FLAG === 4) { //线上取邮件备份
+    client.hgetall("h_mail_backup", function(err, reply) {
+        fs.open("./backup/mail_3_23_4_6.json", "w", function(err, fd) {
+            if (err) throw err;
+            var mail_data = [];
+            for(var v in reply){
+                var date = new Date(parseInt(v));
+                var mail_obj = JSON.parse(reply[v]);
+                mail_obj.date = date.toString();
+                mail_data.push(mail_obj)
+            }
+
+
+            fs.write(fd, JSON.stringify(mail_data), 0, 'utf8', function(e) {
+                if (e) throw e;
+                console.log("write json over...");
+                fs.closeSync(fd);
+            });
+        });
+    });
 }
