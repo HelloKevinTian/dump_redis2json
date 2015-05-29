@@ -4,8 +4,8 @@ var opts = {
     "no_ready_check": false //redis用了代理必须改为true
 };
 
-var client = redis.createClient(6379, '127.0.0.1', opts);
-// var client = redis.createClient(25040, '10.10.2.183', opts); //主干
+// var client = redis.createClient(6379, '127.0.0.1', opts);
+var client = redis.createClient(25040, '10.10.2.183', opts); //主干
 
 var fs = require("fs");
 
@@ -20,9 +20,6 @@ if (!fs.existsSync(cur)) {
     fs.mkdirSync(cur, 0755);
 }
 
-// if you'd like to select database 3, instead of 0 (default), call
-// client.select(3, function() { /* ... */ });
-
 client.on("error", function(err) {
     console.log("Error " + err);
 });
@@ -31,10 +28,10 @@ client.on("error", function(err) {
 // 2:read data from json to redis
 // 3:insert data to redis table
 // 4:线上取某时间段的邮件备份
-var FLAG = 4;
+var FLAG = 1;
 
 // set backup filename
-var tablename = "h_rank_pvp_cheat1";
+var tablename = "h_notice";
 
 var jsonfile = "./backup/" + tablename + "_" + date.getFullYear().toString() +
     "_" + (date.getMonth() + 1).toString() + "_" + date.getDate().toString() + ".json";
@@ -47,9 +44,6 @@ if (FLAG === 1) {
         fs.open(jsonfile, "w", function(err, fd) {
             if (err) throw err;
             var data = JSON.stringify(obj);
-
-            // console.log(obj); //obj
-            // console.log(data); //string
 
             fs.write(fd, data, 0, 'utf8', function(e) {
                 if (e) throw e;
@@ -87,13 +81,12 @@ if (FLAG === 1) {
         fs.open("./backup/mail_3_23_4_6.json", "w", function(err, fd) {
             if (err) throw err;
             var mail_data = [];
-            for(var v in reply){
+            for (var v in reply) {
                 var date = new Date(parseInt(v));
                 var mail_obj = JSON.parse(reply[v]);
                 mail_obj.date = date.toString();
                 mail_data.push(mail_obj)
             }
-
 
             fs.write(fd, JSON.stringify(mail_data), 0, 'utf8', function(e) {
                 if (e) throw e;
