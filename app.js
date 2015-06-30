@@ -4,8 +4,8 @@ var opts = {
     "no_ready_check": false //redis用了代理必须改为true
 };
 
-// var client = redis.createClient(6379, '127.0.0.1', opts);
-var client = redis.createClient(25040, '10.10.2.183', opts); //主干
+var client = redis.createClient(6379, '127.0.0.1', opts);
+// var client = redis.createClient(25040, '10.10.2.183', opts); //主干
 
 var fs = require("fs");
 
@@ -28,7 +28,8 @@ client.on("error", function(err) {
 // 2:read data from json to redis
 // 3:insert data to redis table
 // 4:线上取某时间段的邮件备份
-var FLAG = 1;
+// 5:线上取充值回馈获奖信息
+var FLAG = 5;
 
 // set backup filename
 var tablename = "h_notice";
@@ -89,6 +90,33 @@ if (FLAG === 1) {
             }
 
             fs.write(fd, JSON.stringify(mail_data), 0, 'utf8', function(e) {
+                if (e) throw e;
+                console.log("write json over...");
+                fs.closeSync(fd);
+            });
+        });
+    });
+} else if (FLAG === 5) { //线上取充值反馈奖
+    // "4c030da0-1ddb-11e5-a5ec-5fe565ec5fe5@2015/6/26@2.6.0@000054@Tue Jun 30 2015 17:00:36 GMT+0800 (CST)"
+    // "15249265633"
+
+    client.hgetall("h_charge_feedback", function(err, reply) {
+        fs.open("./backup/h_charge_feedback_6_26.json", "w", function(err, fd) {
+            if (err) throw err;
+            var charge_feedback_data = [];
+            for (var v in reply) {
+                var obj = new Object();
+                var arr = v.split('@');
+                obj.guid = arr[0];
+                obj.activity_time = arr[1];
+                obj.version = arr[2];
+                obj.channel = arr[3];
+                obj.date = arr[4];
+                obj.phone_num = reply[v];
+                charge_feedback_data.push(obj);
+            }
+
+            fs.write(fd, JSON.stringify(charge_feedback_data), 0, 'utf8', function(e) {
                 if (e) throw e;
                 console.log("write json over...");
                 fs.closeSync(fd);
